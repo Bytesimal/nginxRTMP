@@ -1,0 +1,314 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1671
+{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;\red184\green14\blue61;}
+{\*\expandedcolortbl;;\cssrgb\c78039\c14510\c30588;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww12600\viewh6780\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs26 \cf2 \expnd0\expndtw0\kerning0
+worker_processes  1;\
+error_log  logs/error.log debug;\
+events \{\
+    worker_connections  1024;\
+\}\
+\
+\pard\pardeftab720\partightenfactor0
+\cf2 http \{\
+  include       mime.types;\
+  default_type  application/octet-stream;\
+\
+  server \{\
+    listen 80;\
+    server_name localhost;\
+\
+    #creates the http-location for our full-resolution (desktop) HLS stream - "http://my-ip/live/my-stream-key/index.m3u8"      \
+    location /live \{\
+      types \{\
+      application/vnd.apple.mpegurl m3u8;\
+      \}\
+      alias /HLS/live;\
+      add_header Cache-Control no-cache;\
+    \}\
+    location /live4k \{\
+      types \{\
+      application/vnd.apple.mpegurl m3u8;\
+      \}\
+      alias /HLS/live4k;\
+      add_header Cache-Control no-cache;\
+    \}\
+    location /live1080p \{\
+      types \{\
+      application/vnd.apple.mpegurl m3u8;\
+      \}\
+      alias /HLS/live1080p;\
+      add_header Cache-Control no-cache;\
+    \}\
+    location /live720p \{\
+      types \{\
+      application/vnd.apple.mpegurl m3u8;\
+      \}\
+      alias /HLS/live720p;\
+      add_header Cache-Control no-cache;\
+    \}\
+    location /live480p \{\
+      types \{\
+      application/vnd.apple.mpegurl m3u8;\
+      \}\
+      alias /HLS/live480p;\
+      add_header Cache-Control no-cache;\
+    \}\
+    location /live360p \{\
+      types \{\
+      application/vnd.apple.mpegurl m3u8;\
+      \}\
+      alias /HLS/live360p;\
+      add_header Cache-Control no-cache;\
+    \}\
+    location /live240p \{\
+      types \{\
+      application/vnd.apple.mpegurl m3u8;\
+      \}\
+      alias /HLS/live240p;\
+      add_header Cache-Control no-cache;\
+    \}\
+    location /live144p \{\
+      types \{\
+      application/vnd.apple.mpegurl m3u8;\
+      \}\
+      alias /HLS/live144p;\
+      add_header Cache-Control no-cache;\
+    \}\
+\
+    #creates the http-location for our mobile-device HLS stream - "http://my-ip/mobile/my-stream-key/index.m3u8"        \
+    location /mobile \{\
+      types \{\
+        application/vnd.apple.mpegurl m3u8;\
+      \}\
+    alias /HLS/mobile;\
+    add_header Cache-Control no-cache;\
+    \}   \
+\
+    #allows us to see how stats on viewers on our Nginx site using a URL like: "http://my-ip/stats"     \
+    location /stats \{\
+      stub_status;\
+    \}\
+\
+    #allows us to host some webpages which can show our videos: "http://my-ip/my-page.html"     \
+    location / \{\
+      root   html;\
+      index  index.html index.htm;\
+    \}   \
+  \}\
+\}\cf2 \
+\
+rtmp \{\
+  server \{\
+    listen 1935;\
+\cf2     allow play all;\cf2 \
+\
+    #creates our "live" full-resolution HLS videostream from our incoming encoder stream and tells where to put the HLS video manifest and video fragments\
+    application live \{\
+      live on;\
+      record off;\
+      allow publish 127.0.0.1;\
+      allow publish 192.168.0.10;\
+      allow publish 94.173.61.74;\
+      allow publish 192.168.0.1;\
+      deny publish all;\
+      publish_notify on;\
+      notify_method get;\
+      allow play all;\
+      #record all;\
+      #record_path /video_recordings;\
+      #record_unique on;\
+      \
+      hls on;\
+      hls_nested on;\
+      hls_path /HLS/live;\
+      hls_fragment 15s;\
+\
+      dash on;\
+      dash_path /tmp/dash/live;\
+      dash_fragment 15s;\
+\
+      exec ffmpeg -i rtmp://192.168.0.12/live/robro -acodec copy -c:v libx264 -preset veryfast -profile:v baseline -vsync cfr -s 480x360 -b:v 500k maxrate 400k -bufsize 400k -threads 0 -r 30 -f flv rtmp://192.168.0.12/mobile/robro;\
+      \cf2 exec ffmpeg -i rtmp://192.168.0.12/live/robro -acodec copy -c:v libx264 -preset veryfast -profile:v baseline -vsync cfr -s 2048x1080 -b:v 450k maxrate 500k -bufsize 400k -threads 0 -r 30 -f flv rtmp://192.168.0.12/live1080p/robro;\cf2 \
+\pard\tx25400\pardeftab720\partightenfactor0
+\cf2       exec ffmpeg -i rtmp://192.168.0.12/live/robro -acodec copy -c:v libx264 -preset veryfast -profile:v baseline -vsync cfr -s 1365x720 -b:v 400k maxrate 500k -bufsize 400k -threads 0 -r 30 -f flv rtmp://192.168.0.12/live720p/robro;\
+\pard\pardeftab720\partightenfactor0
+\cf2       exec ffmpeg -i rtmp://192.168.0.12/live/robro -acodec copy -c:v libx264 -preset veryfast -profile:v baseline -vsync cfr -s 910x480 -b:v 350k maxrate 500k -bufsize 400k -threads 0 -r 30 -f flv rtmp://192.168.0.12/live480p/robro;\
+      exec ffmpeg -i rtmp://192.168.0.12/live/robro -acodec copy -c:v libx264 -preset veryfast -profile:v baseline -vsync cfr -s 683x360 -b:v 300k maxrate 500k -bufsize 400k -threads 0 -r 30 -f flv rtmp://192.168.0.12/live360p/robro;\
+      exec ffmpeg -i rtmp://192.168.0.12/live/robro -acodec copy -c:v libx264 -preset veryfast -profile:v baseline -vsync cfr -s 455x240 -b:v 250k maxrate 500k -bufsize 400k -threads 0 -r 30 -f flv rtmp://192.168.0.12/live240p/robro;\
+      exec ffmpeg -i rtmp://192.168.0.12/live/robro -acodec copy -c:v libx264 -preset veryfast -profile:v baseline -vsync cfr -s 273x144 -b:v 200k maxrate 500k -bufsize 400k -threads 0 -r 30 -f flv rtmp://192.168.0.12/live144p/robro;\
+    \}\cf2 \
+            \
+\
+    #creates our "mobile" lower-resolution HLS videostream from the ffmpeg-created stream and tells where to put the HLS video manifest and video fragments\
+    application mobile \{\
+      live on;\
+      record off;\
+      allow publish 127.0.0.1;\
+      allow publish 192.168.0.10;\
+      allow publish 94.173.61.74;\
+      allow publish 192.168.0.1;\
+      deny publish all;\
+      publish_notify on;\
+      allow play all;\
+\cf2       \
+      hls on;\
+      hls_nested on;\
+      hls_path /HLS/mobile;\
+      hls_fragment 15s;\
+\
+      dash on;\
+      dash_path /tmp/dash/mobile;\
+      dash_fragment 15s;\cf2 \
+    \}\
+\cf2     application live4k \{\
+      live on;\
+      record off;\
+      allow publish 127.0.0.1;\
+      allow publish 192.168.0.10;\
+      allow publish 94.173.61.74;\
+      allow publish 192.168.0.1;\
+      deny publish all;\
+      publish_notify on;\
+      allow play all;\
+      \
+      hls on;\
+      hls_nested on;\
+      hls_path /HLS/live4k;\
+      hls_fragment 15s;\
+\
+      dash on;\
+      dash_path /tmp/dash/live4k;\
+      dash_fragment 15s;\
+    \}\cf2 \
+\cf2     application live1080p \{\
+      live on;\
+      record off;\
+      allow publish 127.0.0.1;\
+      allow publish 192.168.0.10;\
+      allow publish 94.173.61.74;\
+      allow publish 192.168.0.1;\
+      deny publish all;\
+      publish_notify on;\
+      allow play all;\
+      \
+      hls on;\
+      hls_nested on;\
+      hls_path /HLS/live1080p;\
+      hls_fragment 15s;\
+\
+      dash on;\
+      dash_path /tmp/dash/live1080p;\
+      dash_fragment 15s;\
+    \}\cf2 \
+\cf2     application live720p \{\
+      live on;\
+      record off;\
+      allow publish 127.0.0.1;\
+      allow publish 192.168.0.10;\
+      allow publish 94.173.61.74;\
+      allow publish 192.168.0.1;\
+      deny publish all;\
+      publish_notify on;\
+      allow play all;\
+      \
+      hls on;\
+      hls_nested on;\
+      hls_path /HLS/live720p;\
+      hls_fragment 15s;\
+\
+      dash on;\
+      dash_path /tmp/dash/live720p;\
+      dash_fragment 15s;\
+    \}\
+    application live480p \{\
+      live on;\
+      record off;\
+      allow publish 127.0.0.1;\
+      allow publish 192.168.0.10;\
+      allow publish 94.173.61.74;\
+      allow publish 192.168.0.1;\
+      deny publish all;\
+      publish_notify on;\
+      allow play all;\
+      \
+      hls on;\
+      hls_nested on;\
+      hls_path /HLS/live480p;\
+      hls_fragment 15s;\
+\
+      dash on;\
+      dash_path /tmp/dash/live480p;\
+      dash_fragment 15s;\
+    \}\
+    application live360p \{\
+      live on;\
+      record off;\
+      allow publish 127.0.0.1;\
+      allow publish 192.168.0.10;\
+      allow publish 94.173.61.74;\
+      allow publish 192.168.0.1;\
+      deny publish all;\
+      publish_notify on;\
+      allow play all;\
+      \
+      hls on;\
+      hls_nested on;\
+      hls_path /HLS/live360p;\
+      hls_fragment 15s;\
+\
+      dash on;\
+      dash_path /tmp/dash/live360p;\
+      dash_fragment 15s;\
+    \}\
+    application live240p \{\
+      live on;\
+      record off;\
+      allow publish 127.0.0.1;\
+      allow publish 192.168.0.10;\
+      allow publish 94.173.61.74;\
+      allow publish 192.168.0.1;\
+      deny publish all;\
+      publish_notify on;\
+      allow play all;\
+      \
+      hls on;\
+      hls_nested on;\
+      hls_path /HLS/live240p;\
+      hls_fragment 15s;\
+\
+      dash on;\
+      dash_path /tmp/dash/live240p;\
+      dash_fragment 15s;\
+    \}\
+    application live144p \{\
+      live on;\
+      record off;\
+      allow publish 127.0.0.1;\
+      allow publish 192.168.0.10;\
+      allow publish 94.173.61.74;\
+      allow publish 192.168.0.1;\
+      deny publish all;\
+      publish_notify on;\
+      allow play all;\
+      \
+      hls on;\
+      hls_nested on;\
+      hls_path /HLS/live144p;\
+      hls_fragment 15s;\
+\
+      dash on;\
+      dash_path /tmp/dash/live144p;\
+      dash_fragment 15s;\
+    \}\cf2 \
+\
+    #allows you to play your recordings of your live streams using a URL like "rtmp://my-ip:1935/vod/filename.flv"\
+    application vod \{\
+      play /video_recordings;\
+    \}\
+  \}\
+\}}
